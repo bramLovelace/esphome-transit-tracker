@@ -364,8 +364,8 @@ void TransitTracker::set_realtime_color(const Color &color) {
 }
 
 const uint8_t realtime_icon[6][6] = {
-  {0, 0, 0, 3, 3, 3},
-  {0, 0, 3, 0, 0, 0},
+  {2, 2, 0, 3, 3, 3},
+  {2, 0, 3, 0, 0, 0},
   {0, 3, 0, 0, 2, 2},
   {3, 0, 0, 2, 0, 0},
   {3, 0, 2, 0, 0, 1},
