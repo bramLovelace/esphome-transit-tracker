@@ -77,6 +77,11 @@ class TransitTracker : public Component {
       bool no_draw = false, int *headsign_overflow_out = nullptr, int scroll_cycle_duration = 0
     );
 
+    void draw_route_row_(
+      const std::string &route_id, const std::vector<const Trip *> &trips,
+      int y_offset, int font_height, uint rtc_now
+    );
+    
     Localization localization_{};
     ScheduleState schedule_state_;
 

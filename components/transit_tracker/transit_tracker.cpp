@@ -495,6 +495,52 @@ void TransitTracker::draw_trip(
   this->display_->end_clipping();
 }
 
+void TransitTracker::draw_route_row_(
+    const std::string &route_id, const std::vector<const Trip *> &trips,
+    int y_offset, int font_height, uint rtc_now
+) {
+  if (trips.empty()) return;
+
+  // --- (1) Color swatch instead of route name text ---
+  int swatch_size = font_height - 2;
+  Color swatch_color = trips[0]->route_color; // resolved from your YAML `styles:` config
+  this->display_->filled_rectangle(0, y_offset + 1, swatch_size, swatch_size, swatch_color);
+
+  int text_start_x = swatch_size + 3;
+
+  // --- (2) Multiple departures on one line, comma-separated ---
+  constexpr size_t kMaxTimesPerRow = 2;
+  std::string times_str;
+  bool any_realtime = false;
+  for (size_t i = 0; i < trips.size() && i < kMaxTimesPerRow; ++i) {
+    if (i > 0) times_str += ",";
+    times_str += this->localization_.fmt_duration_from_now(
+      this->display_departure_times_ ? trips[i]->departure_time : trips[i]->arrival_time,
+      rtc_now
+    );
+    if (trips[i]->is_realtime) any_realtime = true;
+  }
+
+  int time_width, _;
+  this->font_->measure(times_str.c_str(), &time_width, &_, &_, &_);
+
+  // --- (3) Green if actually live, gray if only scheduled ---
+  Color time_color = any_realtime ? this->realtime_color_ : Color(0xa7a7a7);
+  this->display_->print(
+    this->display_->get_width() + 1, y_offset, this->font_, time_color,
+    display::TextAlign::TOP_RIGHT, times_str.c_str()
+  );
+
+  // Headsign, clipped between the swatch and the times (assumes all trips
+  // on this row share a destination -- true for a fixed direction/stop like
+  // Ashby southbound. Uses the soonest trip's headsign.)
+  int headsign_clip_end = this->display_->get_width() - time_width - 2;
+  this->display_->start_clipping(text_start_x, 0, headsign_clip_end, this->display_->get_height());
+  this->display_->print(text_start_x, y_offset, this->font_, Color(0xFFFFFF),
+                         trips[0]->headsign.c_str());
+  this->display_->end_clipping();
+}
+
 void HOT TransitTracker::draw_schedule() {
   if (this->display_ == nullptr) [[unlikely]] {
     ESP_LOGW(TAG, "No display attached, cannot draw schedule");
@@ -538,7 +584,8 @@ void HOT TransitTracker::draw_schedule() {
   unsigned long uptime = millis();
   uint rtc_now = this->rtc_->now().timestamp;
 
-  int scroll_cycle_duration = 0;
+  
+  int scroll_cycle_duration = 0;/*
   if (this->scroll_headsigns_) {
     int largest_headsign_overflow = 0;
     for (const Trip &trip : this->schedule_state_.trips) {
@@ -552,8 +599,11 @@ void HOT TransitTracker::draw_schedule() {
       scroll_cycle_duration = idle_time_left + idle_time_right + 2*longest_scroll_time;
     }
   }
+  */
 
-  int max_trips_height = (this->limit_ * this->font_->get_ascender()) + ((this->limit_ - 1) * this->font_->get_descender());
+  //int max_trips_height = (this->limit_ * this->font_->get_ascender()) + ((this->limit_ - 1) * this->font_->get_descender());
+  constexpr int kNumRows = 2;
+  int max_trips_height = (kNumRows * this->font_->get_ascender()) + ((kNumRows - 1) * this->font_->get_descender());
   int y_offset = (this->display_->get_height() % max_trips_height) / 2;
 
   bool has_header_text = !this->header_text_.empty();
@@ -562,8 +612,23 @@ void HOT TransitTracker::draw_schedule() {
     y_offset += nominal_font_height;
   }
 
-  for (const Trip &trip : this->schedule_state_.trips) {
+  /*for (const Trip &trip : this->schedule_state_.trips) {
     this->draw_trip(trip, y_offset, nominal_font_height, uptime, rtc_now, false, nullptr, scroll_cycle_duration);
+    y_offset += nominal_font_height;
+  }*/
+
+  static const std::vector<std::string> row_order = {"RED", "ORANGE"};
+
+  for (const auto &route_id : row_order) {
+    std::vector<const Trip *> matches;
+    for (const auto &trip : this->schedule_state_.trips) {
+      if (strcasecmp(trip.route_id.c_str(), route_id.c_str()) == 0) {
+        matches.push_back(&trip);
+      }
+    }
+    if (matches.empty()) continue;
+
+    this->draw_route_row_(route_id, matches, y_offset, nominal_font_height, rtc_now);
     y_offset += nominal_font_height;
   }
 }
