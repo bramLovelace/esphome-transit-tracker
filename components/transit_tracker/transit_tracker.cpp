@@ -28,7 +28,7 @@ static constexpr int STALE_TRIP_SECONDS = 60;
 
 static constexpr int kCarRectWidth = 8;
 static constexpr int kCarRectGap = 2;
-static constexpr int kCarRectHeight = 3;   // tune this -- see note below
+static constexpr int kCarRectHeight = 2;   // tune this -- see note below
 static constexpr int kCarRectVPad = 2;     // "one line" of space above/below the car strip
 
 static std::string compute_device_id() {
