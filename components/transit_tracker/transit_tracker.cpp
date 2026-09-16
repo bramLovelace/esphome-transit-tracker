@@ -556,7 +556,7 @@ void TransitTracker::draw_route_row_(
   // --- Car length indicator: N rectangles, one per car, in route color ---
   int car_count = trips[0]->car_length;
   if (car_count > 0) {
-    int cars_y = y_offset + font_height + kCarRectVPad;
+    int cars_y = y_offset + this->font_->get_ascender() + kCarRectVPad;
     int cars_x = text_start_x;
     for (int i = 0; i < car_count; ++i) {
       this->display_->filled_rectangle(cars_x, cars_y, kCarRectWidth, kCarRectHeight, swatch_color);
@@ -605,7 +605,7 @@ void HOT TransitTracker::draw_schedule() {
   }
 
   int nominal_font_height = this->font_->get_ascender() + this->font_->get_descender();
-  int row_content_height = nominal_font_height + (2 * kCarRectVPad) + kCarRectHeight;
+  int row_content_height = this->font_->get_ascender() + kCarRectVPad + kCarRectHeight;
   unsigned long uptime = millis();
   uint rtc_now = this->rtc_->now().timestamp;
 
