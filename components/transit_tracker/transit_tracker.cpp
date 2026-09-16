@@ -3,6 +3,8 @@
 
 #include <cstdlib>
 #include <strings.h>
+#include <algorithm>
+#include <cctype>
 
 #include "esp_heap_caps.h"
 #include "esp_idf_version.h"
@@ -12,6 +14,7 @@
 #include "esphome/core/application.h"
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/util.h"
+
 
 namespace esphome {
 namespace transit_tracker {
@@ -502,9 +505,9 @@ void TransitTracker::draw_route_row_(
   if (trips.empty()) return;
 
   // --- (1) Color swatch instead of route name text ---
-  int swatch_size = font_height - 2;
+  int swatch_size = font_height;
   Color swatch_color = trips[0]->route_color; // resolved from your YAML `styles:` config
-  this->display_->filled_rectangle(0, y_offset + 1, swatch_size, swatch_size, swatch_color);
+  this->display_->filled_rectangle(0, y_offset, swatch_size, swatch_size, swatch_color);
 
   int text_start_x = swatch_size + 3;
 
@@ -534,10 +537,14 @@ void TransitTracker::draw_route_row_(
   // Headsign, clipped between the swatch and the times (assumes all trips
   // on this row share a destination -- true for a fixed direction/stop like
   // Ashby southbound. Uses the soonest trip's headsign.)
+  std::string headsign_upper = trips[0]->headsign;
+  std::transform(headsign_upper.begin(), headsign_upper.end(), headsign_upper.begin(),
+                 [](unsigned char c) { return std::toupper(c); });
+
   int headsign_clip_end = this->display_->get_width() - time_width - 2;
   this->display_->start_clipping(text_start_x, 0, headsign_clip_end, this->display_->get_height());
   this->display_->print(text_start_x, y_offset, this->font_, Color(0xFFFFFF),
-                         trips[0]->headsign.c_str());
+                         headsign_upper.c_str());
   this->display_->end_clipping();
 }
 
@@ -603,7 +610,9 @@ void HOT TransitTracker::draw_schedule() {
 
   //int max_trips_height = (this->limit_ * this->font_->get_ascender()) + ((this->limit_ - 1) * this->font_->get_descender());
   constexpr int kNumRows = 2;
-  int max_trips_height = (kNumRows * this->font_->get_ascender()) + ((kNumRows - 1) * this->font_->get_descender());
+  constexpr int kRowGap = 4; // pixels reserved between rows -- tune this, and it's
+  int max_trips_height = (kNumRows * this->font_->get_ascender())
+                        + ((kNumRows - 1) * (this->font_->get_descender() + kRowGap));
   int y_offset = (this->display_->get_height() % max_trips_height) / 2;
 
   bool has_header_text = !this->header_text_.empty();
@@ -629,7 +638,7 @@ void HOT TransitTracker::draw_schedule() {
     if (matches.empty()) continue;
 
     this->draw_route_row_(route_id, matches, y_offset, nominal_font_height, rtc_now);
-    y_offset += nominal_font_height;
+    y_offset += nominal_font_height + kRowGap;
   }
 }
 
