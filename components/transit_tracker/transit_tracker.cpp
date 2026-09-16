@@ -27,9 +27,9 @@ static constexpr unsigned long HEARTBEAT_TIMEOUT_MS = 60000;
 static constexpr int STALE_TRIP_SECONDS = 60;
 
 static constexpr int kCarRectWidth = 7;
-static constexpr int kCarRectGap = 1;
-static constexpr int kCarRectHeight = 3;   // tune this -- see note below
-static constexpr int kCarRectVPad = 1;     // "one line" of space above/below the car strip
+static constexpr int kCarRectGap = 2;
+static constexpr int kCarRectHeight = 2;   // tune this -- see note below
+static constexpr int kCarRectVPad = 0;     // "one line" of space above/below the car strip
 
 static std::string compute_device_id() {
   uint8_t mac[6];
