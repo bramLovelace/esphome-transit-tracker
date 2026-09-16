@@ -511,7 +511,7 @@ void TransitTracker::draw_route_row_(
   if (trips.empty()) return;
 
   // --- (1) Color swatch instead of route name text ---
-  int swatch_size = font_height-5;
+  int swatch_size = font_height-2; // use -5 and +3 below to vertically center the swatch with the text when using 5x7 fontunosuke font
   Color swatch_color = trips[0]->route_color; // resolved from your YAML `styles:` config
   this->display_->filled_rectangle(0, y_offset, swatch_size, swatch_size, swatch_color);
 
