@@ -27,9 +27,9 @@ static constexpr unsigned long HEARTBEAT_TIMEOUT_MS = 60000;
 static constexpr int STALE_TRIP_SECONDS = 60;
 
 static constexpr int kCarRectWidth = 8;
-static constexpr int kCarRectGap = 1;
+static constexpr int kCarRectGap = 2;
 static constexpr int kCarRectHeight = 3;   // tune this -- see note below
-static constexpr int kCarRectVPad = 1;     // "one line" of space above/below the car strip
+static constexpr int kCarRectVPad = 2;     // "one line" of space above/below the car strip
 
 static std::string compute_device_id() {
   uint8_t mac[6];
@@ -515,7 +515,7 @@ void TransitTracker::draw_route_row_(
   Color swatch_color = trips[0]->route_color; // resolved from your YAML `styles:` config
   this->display_->filled_rectangle(0, y_offset, swatch_size, swatch_size, swatch_color);
 
-  int text_start_x = swatch_size + 3;
+  int text_start_x = swatch_size + 2;
 
   // --- (2) Multiple departures on one line, comma-separated ---
   constexpr size_t kMaxTimesPerRow = 2;
