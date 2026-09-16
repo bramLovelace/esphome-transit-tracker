@@ -26,6 +26,11 @@ static constexpr int CONNECT_FAILURE_REBOOT_THRESHOLD = 15;
 static constexpr unsigned long HEARTBEAT_TIMEOUT_MS = 60000;
 static constexpr int STALE_TRIP_SECONDS = 60;
 
+static constexpr int kCarRectWidth = 7;
+static constexpr int kCarRectGap = 1;
+static constexpr int kCarRectHeight = 3;   // tune this -- see note below
+static constexpr int kCarRectVPad = 1;     // "one line" of space above/below the car strip
+
 static std::string compute_device_id() {
   uint8_t mac[6];
   esphome::get_mac_address_raw(mac);
@@ -296,6 +301,7 @@ void TransitTracker::handle_message_(const std::string &payload) {
         .arrival_time = trip["arrivalTime"].as<time_t>(),
         .departure_time = trip["departureTime"].as<time_t>(),
         .is_realtime = trip["isRealtime"].as<bool>(),
+        .car_length = trip["carLength"].is<int>() ? trip["carLength"].as<int>() : 0,
       });
     }
 
@@ -505,7 +511,7 @@ void TransitTracker::draw_route_row_(
   if (trips.empty()) return;
 
   // --- (1) Color swatch instead of route name text ---
-  int swatch_size = font_height;
+  int swatch_size = font_height-2;
   Color swatch_color = trips[0]->route_color; // resolved from your YAML `styles:` config
   this->display_->filled_rectangle(0, y_offset, swatch_size, swatch_size, swatch_color);
 
@@ -546,6 +552,17 @@ void TransitTracker::draw_route_row_(
   this->display_->print(text_start_x, y_offset, this->font_, Color(0xFFFFFF),
                          headsign_upper.c_str());
   this->display_->end_clipping();
+
+  // --- Car length indicator: N rectangles, one per car, in route color ---
+  int car_count = trips[0]->car_length;
+  if (car_count > 0) {
+    int cars_y = y_offset + font_height + kCarRectVPad;
+    int cars_x = text_start_x;
+    for (int i = 0; i < car_count; ++i) {
+      this->display_->filled_rectangle(cars_x, cars_y, kCarRectWidth, kCarRectHeight, swatch_color);
+      cars_x += kCarRectWidth + kCarRectGap;
+    }
+  }
 }
 
 void HOT TransitTracker::draw_schedule() {
@@ -588,6 +605,7 @@ void HOT TransitTracker::draw_schedule() {
   }
 
   int nominal_font_height = this->font_->get_ascender() + this->font_->get_descender();
+  int row_content_height = nominal_font_height + (2 * kCarRectVPad) + kCarRectHeight;
   unsigned long uptime = millis();
   uint rtc_now = this->rtc_->now().timestamp;
 
@@ -610,9 +628,10 @@ void HOT TransitTracker::draw_schedule() {
 
   //int max_trips_height = (this->limit_ * this->font_->get_ascender()) + ((this->limit_ - 1) * this->font_->get_descender());
   constexpr int kNumRows = 2;
-  constexpr int kRowGap = 4; // pixels reserved between rows -- tune this, and it's
-  int max_trips_height = (kNumRows * this->font_->get_ascender())
-                        + ((kNumRows - 1) * (this->font_->get_descender() + kRowGap));
+  constexpr int kRowGap = 4; // pixels reserved between rows 
+  //int max_trips_height = (kNumRows * this->font_->get_ascender())
+  //                      + ((kNumRows - 1) * (this->font_->get_descender() + kRowGap));
+  int max_trips_height = (kNumRows * row_content_height) + ((kNumRows - 1) * kRowGap);
   int y_offset = (this->display_->get_height() % max_trips_height) / 2;
 
   bool has_header_text = !this->header_text_.empty();
@@ -638,7 +657,7 @@ void HOT TransitTracker::draw_schedule() {
     if (matches.empty()) continue;
 
     this->draw_route_row_(route_id, matches, y_offset, nominal_font_height, rtc_now);
-    y_offset += nominal_font_height + kRowGap;
+    y_offset += row_content_height + kRowGap;
   }
 }
 

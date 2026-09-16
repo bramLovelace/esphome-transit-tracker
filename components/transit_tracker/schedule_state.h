@@ -17,6 +17,7 @@ class Trip {
     time_t arrival_time;
     time_t departure_time;
     bool is_realtime;
+    int car_length = 0;   // ADD THIS -- 0 means "unknown / not reported"
 };
 
 class ScheduleState {
